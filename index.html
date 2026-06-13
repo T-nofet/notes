@@ -19,7 +19,7 @@
       --shadow: 0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
       --shadow-hover: 0 10px 20px rgba(0,0,0,0.06), 0 3px 6px rgba(0,0,0,0.04);
       --radius: 12px;
-      --shared-color: #10b981; /* גוון ירוק לציון פתק משותף לעריכה */
+      --shared-color: #10b981;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Assistant', sans-serif; }
@@ -61,14 +61,12 @@
       overflow: hidden;
     }
     
-    /* אפקט גדילה והרמה במעבר עכבר (Hover) */
     .note-card:hover {
       transform: translateY(-4px) scale(1.03);
       box-shadow: var(--shadow-hover);
-      border-color: #cbd5e1;
+      border-color: var(--cat-border-color, #cbd5e1);
     }
     
-    /* פתק דחוף */
     .note-card.is-urgent { 
       border-color: var(--urgent);
       box-shadow: 0 0 12px var(--urgent-glow), var(--shadow);
@@ -78,7 +76,6 @@
       box-shadow: 0 0 16px var(--urgent-glow), var(--shadow-hover);
     }
     
-    /* פתק משותף מקבל פס תחתון ירוק */
     .note-card.is-shared {
       border-bottom: 3px solid var(--shared-color);
     }
@@ -117,8 +114,18 @@
     }
     .note-date { font-weight: 500; }
     .shared-badge { color: var(--shared-color); font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; gap: 2px; }
+    
+    /* תגית קטגוריה דינמית */
+    .cat-badge {
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background-color: var(--cat-bg-color);
+      color: var(--cat-text-color);
+      border: 1px solid var(--cat-border-color);
+    }
 
-    /* הצגת כפתורים דינמית */
     .note-actions { 
       display: flex; 
       justify-content: space-between; 
@@ -135,12 +142,11 @@
     
     .note-actions .btn { color: var(--text-muted); font-size: 1.1rem; padding: 2px; }
     .note-actions .btn:hover { color: var(--text-main); transform: scale(1.15); }
-    .note-actions .btn-revoke { color: #ef4444 !important; } /* כפתור ביטול אדום */
+    .note-actions .btn-revoke { color: #ef4444 !important; }
 
     .fab { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 1.8rem; z-index: 10; transition: all 0.2s; }
     .fab:hover { background: var(--primary-hover); transform: scale(1.05); }
 
-    /* מודאלים */
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 100; transition: all 0.3s ease; }
     .modal { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 20px; display: flex; flex-direction: column; gap: 16px; animation: slideUp 0.3s ease-out; max-height: 85vh; position: relative; transition: all 0.25s ease-in-out; }
     
@@ -182,7 +188,6 @@
     
     #toast { position: fixed; bottom: 90px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: none; z-index: 1000; }
 
-    /* עיצובי מצב פתק בודד משותף */
     .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
     .single-mode .notes-list { grid-template-columns: 1fr; }
     .single-mode .note-card { height: auto; min-height: 200px; }
@@ -222,7 +227,10 @@
       <textarea id="note-text-input" placeholder="כתוב משהו..."></textarea>
       <div class="form-group" id="cat-select-group">
         <label>קטגוריה</label>
-        <select id="note-cat-select"></select>
+        <div style="display: flex; gap: 8px;">
+          <select id="note-cat-select" style="flex: 1;"></select>
+          <button class="btn" onclick="addNewCategory()" title="הוסף קטגוריה חדשה" style="background: #eef2f7; padding: 0 16px; border-radius: var(--radius); color: var(--primary); font-weight: 700;">➕</button>
+        </div>
       </div>
       <div class="modal-buttons">
         <button class="btn btn-block btn-cancel" onclick="closeModal()">ביטול</button>
@@ -256,7 +264,6 @@
         checkSecurity();
       }
       
-      // האזנה למקש ESC לחזרה או ביטול חלונות
       window.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
           const modal = document.getElementById('note-modal');
@@ -313,20 +320,49 @@
       loadNotes();
     }
 
+    function getCategoryColor(catName) {
+      let hash = 0;
+      for (let i = 0; i < catName.length; i++) {
+        hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash % 360);
+      return {
+        bg: `hsl(${hue}, 85%, 96%)`,
+        border: `hsl(${hue}, 65%, 75%)`,
+        text: `hsl(${hue}, 60%, 30%)`
+      };
+    }
+
     function loadCategories() {
       callAPI('getCategories').then(cats => {
         if (!cats) return;
         categories = cats;
         const container = document.getElementById('categories-container');
+        
         let html = `<div class="cat-chip ${currentCategory === 'הכל' ? 'active' : ''}" onclick="filterCategory('הכל')">הכל</div>`;
         cats.forEach(c => {
-          html += `<div class="cat-chip ${currentCategory === c ? 'active' : ''}" onclick="filterCategory('${c}')">${c}</div>`;
+          const colors = getCategoryColor(c);
+          const activeClass = currentCategory === c ? 'active' : '';
+          const chipStyle = currentCategory === c ? '' : `style="background: ${colors.bg}; color: ${colors.text}; border-color: ${colors.border};"`;
+          html += `<div class="cat-chip ${activeClass}" ${chipStyle} onclick="filterCategory('${c}')">${c}</div>`;
         });
         container.innerHTML = html;
 
         const select = document.getElementById('note-cat-select');
         select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
       });
+    }
+
+    function addNewCategory() {
+      const newCat = prompt("הכנס את שם הקטגוריה החדשה:");
+      if (newCat && newCat.trim() !== "") {
+        callAPI('addCategory', { name: newCat.trim() }).then(success => {
+          if (success) {
+            showToast("הקטגוריה התווספה בהצלחה!");
+            loadCategories();
+          }
+        });
+      }
     }
 
     function loadNotes() {
@@ -354,14 +390,17 @@
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
         const isShared = token && token.trim() !== ''; 
         const isSharedClass = isShared ? 'is-shared' : '';
+        
+        const colors = getCategoryColor(cat);
+        const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
         html += `
-          <div class="note-card ${isUrgentClass} ${isSharedClass}" id="note-${id}">
+          <div class="note-card ${isUrgentClass} ${isSharedClass}" id="note-${id}" ${cardVars}>
             <div class="note-text">${text}</div>
             <div class="note-footer">
               <div class="note-meta">
                 <span class="note-date">${date}</span>
-                ${isShared ? `<span class="shared-badge" title="פתק משותף לעריכה">👥 ${cat}</span>` : `<span>${cat}</span>`}
+                ${isShared ? `<span class="shared-badge" title="פתק משותף לעריכה">👥 <span class="cat-badge">${cat}</span></span>` : `<span class="cat-badge">${cat}</span>`}
               </div>
               <div class="note-actions">
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
@@ -396,6 +435,9 @@
           const [id, text, date, cat, urgent, token] = note;
           const canEdit = editTokenFromUrl && token && editTokenFromUrl === token;
           const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
+          
+          const colors = getCategoryColor(cat);
+          const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
           if (editTokenFromUrl && (!token || editTokenFromUrl !== token)) {
             document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--urgent); margin-top:20px;">הגישה לעריכת פתק זה בוטלה על ידי הבעלים</p>';
@@ -403,10 +445,10 @@
           }
 
           let html = `
-            <div class="note-card ${isUrgentClass}">
+            <div class="note-card ${isUrgentClass}" ${cardVars}>
               <div class="note-text" id="single-text">${text}</div>
               <div class="note-footer">
-                <div class="note-meta"><span class="note-date">${date}</span><span>${cat}</span></div>
+                <div class="note-meta"><span class="note-date">${date}</span><span class="cat-badge">${cat}</span></div>
                 <div class="note-actions" style="justify-content: flex-start;">
                   ${canEdit ? `<button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')">✏️ עריכת פתק משותף</button>` : '👁️ תצוגת קריאה בלבד'}
                 </div>
