@@ -79,9 +79,6 @@
 
     /* מצב קריאה/עריכה ייעודי משיתוף */
     .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
-
-    /* עיצוב אייקונים בסיסי בטקסט */
-    .icon-btn { font-style: normal; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -125,7 +122,6 @@
   <div id="toast"></div>
 
   <script>
-    // כתובת ה-API של גוגל סקריפט (החלף בקישור שלך שקיבלת)
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
 
     let currentView = 'active'; // active / archived / single
@@ -135,7 +131,6 @@
     let editingNoteId = null;
     let editTokenFromUrl = null;
 
-    // ניתוח פרמטרים בכתובת (לשיתוף)
     const urlParams = new URLSearchParams(window.location.search);
     const noteIdParam = urlParams.get('noteId');
     editTokenFromUrl = urlParams.get('token');
@@ -150,7 +145,6 @@
       }
     };
 
-    // תקשורת מול ה-API של גוגל סקריפט ב-POST
     async function callAPI(action, data = {}) {
       data.action = action;
       try {
@@ -167,13 +161,10 @@
     }
 
     function checkSecurity() {
-      // בדיקה אם מוגדרת סיסמה במערכת
       callAPI('checkUserPassword', { password: '' }).then(res => {
         if (res === false) {
-          // יש סיסמה (כי סיסמה ריקה לא תואמת)
           document.getElementById('password-screen').style.display = 'flex';
         } else {
-          // אין סיסמה מוגדרת, כניסה ישרה
           initApp();
         }
       });
@@ -208,7 +199,6 @@
         });
         container.innerHTML = html;
 
-        // עדכון הסלקטור במודאל
         const select = document.getElementById('note-cat-select');
         select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
       });
@@ -234,10 +224,7 @@
       let html = '';
       notes.forEach(note => {
         const [id, text, date, cat, urgent, token, archived] = note;
-        
-        // סינון קטגוריה באפליקציה
         if (currentCategory !== 'הכל' && cat !== currentCategory) return;
-
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
         
         html += `
@@ -263,12 +250,150 @@
       container.innerHTML = html;
     }
 
-    // תצוגת פתק בודד משיתוף קריאה/עריכה
     function loadSingleNoteView() {
       document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתק משותף...</p>';
       
-      // מביא את כל הפתקים (גם פעילים וגם ארכיון) כדי למצוא את הספציפי ללא הגבלת אבטחה
       callAPI('getNotes').then(active => {
         callAPI('getArchivedNotes').then(archived => {
           const combined = [...(active || []), ...(archived || [])];
-          const note = combined.find(n => n[0].toString
+          const note = combined.find(n => n[0].toString() === noteIdParam.toString());
+          
+          if (!note) {
+            document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--urgent);">הפתק לא נמצא או נמחק</p>';
+            return;
+          }
+
+          const [id, text, date, cat, urgent, token] = note;
+          const canEdit = editTokenFromUrl && editTokenFromUrl === token;
+          const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
+
+          let html = `
+            <div class="note-card ${isUrgentClass}">
+              <div class="note-text" id="single-text">${text}</div>
+              <div class="note-footer">
+                <div class="note-meta"><span>${date}</span><span>•</span><span>${cat}</span></div>
+                <div class="note-actions">
+                  ${canEdit ? `<button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')">✏️ עריכת פתק משותף</button>` : '👁️ תצוגת קריאה בלבד'}
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById('notes-container').innerHTML = html;
+        });
+      });
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      loadCategories();
+      if (currentView !== 'single') renderNotesList(allNotes);
+    }
+
+    function toggleArchiveView() {
+      currentView = currentView === 'active' ? 'archived' : 'active';
+      document.getElementById('archive-view-btn').innerText = currentView === 'active' ? 'ארכיון' : 'פתקים פעילים';
+      document.getElementById('archive-view-btn').style.background = currentView === 'active' ? '#eef2f7' : '#4a6fa5';
+      document.getElementById('archive-view-btn').style.color = currentView === 'active' ? 'var(--primary)' : 'white';
+      loadNotes();
+    }
+
+    function openAddModal() {
+      editingNoteId = null;
+      document.getElementById('modal-title').innerText = 'פתק חדש';
+      document.getElementById('note-text-input').value = '';
+      document.getElementById('cat-select-group').style.display = 'flex';
+      document.getElementById('note-modal').style.display = 'flex';
+    }
+
+    function openEditModal(id, text, cat) {
+      editingNoteId = id;
+      document.getElementById('modal-title').innerText = 'עריכת פתק';
+      document.getElementById('note-text-input').value = text;
+      
+      if (currentView === 'single') {
+        document.getElementById('cat-select-group').style.display = 'none';
+      } else {
+        document.getElementById('cat-select-group').style.display = 'flex';
+        document.getElementById('note-cat-select').value = cat;
+      }
+      document.getElementById('note-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('note-modal').style.display = 'none';
+    }
+
+    function saveNote() {
+      const text = document.getElementById('note-text-input').value.trim();
+      if (!text) return;
+
+      document.getElementById('save-modal-btn').disabled = true;
+      document.getElementById('save-modal-btn').innerText = 'שומר...';
+
+      if (editingNoteId) {
+        const token = currentView === 'single' ? editTokenFromUrl : "";
+        callAPI('updateNoteInSheet', { id: editingNoteId, text: text, token: token }).then(success => {
+          if (success) {
+            showToast("הפתק עודכן בהצלחה");
+            closeModal();
+            if (currentView === 'single') loadSingleNoteView(); else loadNotes();
+          } else {
+            showToast("שגיאה: אין הרשאת עריכה");
+          }
+          resetModalButton();
+        });
+      } else {
+        const cat = document.getElementById('note-cat-select').value;
+        callAPI('addNoteToSheet', { text: text, category: cat }).then(success => {
+          if (success) {
+            showToast("הפתק התווסף");
+            closeModal();
+            loadNotes();
+          }
+          resetModalButton();
+        });
+      }
+    }
+
+    function resetModalButton() {
+      document.getElementById('save-modal-btn').disabled = false;
+      document.getElementById('save-modal-btn').innerText = 'שמירה';
+    }
+
+    function toggleUrgentServer(id) {
+      callAPI('toggleUrgent', { id: id }).then(() => loadNotes());
+    }
+
+    function toggleArchiveServer(id) {
+      callAPI('toggleArchive', { id: id }).then(() => loadNotes());
+    }
+
+    function deleteNoteServer(id) {
+      if (confirm("האם למחוק פתק זה לצמיתות?")) {
+        callAPI('deleteNoteFromSheet', { id: id }).then(() => loadNotes());
+      }
+    }
+
+    function shareNote(id) {
+      const choice = confirm("לחץ 'אישור' ליצירת קישור לעריכה\nלחץ 'ביטול' ליצירת קישור לצפייה בלבד");
+      callAPI('getShareLinkData', { id: id, edit: choice }).then(data => {
+        if (!data) return;
+        
+        let shareUrl = window.location.origin + window.location.pathname + "?noteId=" + data.id;
+        if (data.token) shareUrl += "&token=" + data.token;
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast("הקישור הועתק ללוח!");
+        });
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+  </script>
+</body>
+</html>
