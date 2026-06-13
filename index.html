@@ -12,10 +12,12 @@
       --text-main: #212529;
       --text-muted: #6c757d;
       --primary: #4a6fa5;
+      --primary-hover: #3b5c8a;
       --urgent: #f59e0b; 
       --urgent-glow: rgba(245, 158, 11, 0.15);
       --border: #e9ecef;
       --shadow: 0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-hover: 0 10px 20px rgba(0,0,0,0.06), 0 3px 6px rgba(0,0,0,0.04);
       --radius: 12px;
     }
 
@@ -33,14 +35,15 @@
     /* קטגוריות */
     .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
     .categories-bar::-webkit-scrollbar { display: none; }
-    .cat-chip { padding: 6px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); }
+    .cat-chip { padding: 6px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+    .cat-chip:hover { background: #f1f3f5; color: var(--text-main); }
     .cat-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
 
     /* תצוגת פתקים קטנים ברשת */
     .notes-list { 
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-      gap: 14px; 
+      gap: 16px; 
     }
     
     .note-card { 
@@ -53,13 +56,24 @@
       flex-direction: column; 
       height: 220px; 
       position: relative;
-      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
       overflow: hidden;
+    }
+    
+    /* אפקט הגדלה והרמה במעבר עכבר (Hover) */
+    .note-card:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: var(--shadow-hover);
+      border-color: #cbd5e1;
     }
     
     .note-card.is-urgent { 
       border-color: var(--urgent);
       box-shadow: 0 0 12px var(--urgent-glow), var(--shadow);
+    }
+    .note-card.is-urgent:hover {
+      border-color: var(--urgent);
+      box-shadow: 0 0 16px var(--urgent-glow), var(--shadow-hover);
     }
     
     .note-text { 
@@ -73,8 +87,10 @@
       padding-left: 4px; 
     }
     
+    /* עיצוב פס גלילה פנימי עדין לפתקים ארוכים */
     .note-text::-webkit-scrollbar { width: 4px; }
-    .note-text::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .note-text::-webkit-scrollbar-track { background: transparent; }
+    .note-text::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; opacity: 0.5; }
 
     .note-footer { 
       margin-top: auto;
@@ -98,11 +114,23 @@
       display: flex; 
       justify-content: space-between; 
       color: var(--text-muted); 
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
     }
+    /* במחשב - הכפתורים הופכים לבולטים רק כשמתקרבים לפתק */
+    @media (hover: hover) {
+      .note-card:hover .note-actions { opacity: 1; }
+    }
+    /* בנייד - הכפתורים תמיד גלויים */
+    @media (hover: none) {
+      .note-actions { opacity: 1; }
+    }
+    
     .note-actions .btn { color: var(--text-muted); font-size: 1.1rem; padding: 2px; }
-    .note-actions .btn:hover { color: var(--text-main); transform: scale(1.1); }
+    .note-actions .btn:hover { color: var(--text-main); transform: scale(1.15); }
 
-    .fab { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 1.8rem; z-index: 10; }
+    .fab { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 1.8rem; z-index: 10; transition: all 0.2s; }
+    .fab:hover { background: var(--primary-hover); transform: scale(1.05); }
 
     /* מודאלים ועריכה */
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 100; transition: all 0.3s ease; }
@@ -110,7 +138,6 @@
     
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    /* אלמנטים למסך מלא בתוך המודאל */
     .modal-header-actions { display: flex; justify-content: space-between; align-items: center; }
     .btn-fullscreen { font-size: 0.9rem; color: var(--text-muted); padding: 6px 12px; border-radius: 20px; background: #f1f3f5; font-weight: 600; }
     .btn-fullscreen:hover { color: var(--primary); background: #eef2f7; }
@@ -125,7 +152,9 @@
     .modal-buttons { display: flex; gap: 10px; margin-top: 8px; }
     .btn-block { flex: 1; padding: 12px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; text-align: center; }
     .btn-submit { background: var(--primary); color: white; }
+    .btn-submit:hover { background: var(--primary-hover); }
     .btn-cancel { background: #f1f3f5; color: var(--text-main); }
+    .btn-cancel:hover { background: #e2e6ea; }
 
     /* מצב מסך מלא למודאל העריכה */
     .modal.fullscreen-mode {
@@ -149,6 +178,7 @@
     .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
     .single-mode .notes-list { grid-template-columns: 1fr; }
     .single-mode .note-card { height: auto; min-height: 200px; }
+    .single-mode .note-card:hover { transform: none; box-shadow: var(--shadow); border-color: var(--border); }
     .single-mode .note-text { overflow-y: visible; }
   </style>
 </head>
@@ -222,12 +252,9 @@
       window.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
           const modal = document.getElementById('note-modal');
-          // אם חלון העריכה/הוספה פתוח - נסגור אותו
           if (modal.style.display === 'flex') {
             closeModal();
-          } 
-          // אם אנחנו בדף של פתק בודד וחלון העריכה סגור - נחזור לדף הראשי
-          else if (currentView === 'single') {
+          } else if (currentView === 'single') {
             window.location.href = window.location.origin + window.location.pathname;
           }
         }
@@ -383,7 +410,7 @@
       currentView = currentView === 'active' ? 'archived' : 'active';
       document.getElementById('archive-view-btn').innerText = currentView === 'active' ? 'ארכיון' : 'פתקים פעילים';
       document.getElementById('archive-view-btn').style.background = currentView === 'active' ? '#eef2f7' : '#4a6fa5';
-      document.getElementById('archive-view-btn').style.color = currentView === 'active' ? 'var(--primary)' : 'white';
+      document.getElementById('archive-view-btn').style.color = currentView === 'active' ? 'white' : 'white';
       loadNotes();
     }
 
