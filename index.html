@@ -12,8 +12,8 @@
       --text-main: #212529;
       --text-muted: #6c757d;
       --primary: #4a6fa5;
-      --urgent: #e63946;
-      --urgent-bg: #ffe3e3;
+      --urgent: #f59e0b; /* צבע זהב/כוכב */
+      --urgent-glow: rgba(245, 158, 11, 0.15);
       --border: #e9ecef;
       --shadow: 0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
       --radius: 12px;
@@ -52,10 +52,16 @@
       display: flex; 
       flex-direction: column; 
       justify-content: space-between;
-      height: 180px; /* גובה קבוע לפתק קטן */
+      height: 180px;
       position: relative;
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
-    .note-card.is-urgent { border-right: 4px solid var(--urgent); background: var(--urgent-bg); }
+    
+    /* אפקט זוהר ואור מודרני לפתק דחוף */
+    .note-card.is-urgent { 
+      border-color: var(--urgent);
+      box-shadow: 0 0 12px var(--urgent-glow), var(--shadow);
+    }
     
     /* אזור טקסט קטן עם אפשרות גלילה פנימית */
     .note-text { 
@@ -63,13 +69,12 @@
       line-height: 1.4; 
       white-space: pre-wrap; 
       word-break: break-word; 
-      overflow-y: auto; /* מאפשר גלילה אנכית בתוך הפתק */
+      overflow-y: auto; 
       flex-grow: 1;
       margin-bottom: 6px;
-      padding-left: 4px; /* רווח קטן לפס הגלילה */
+      padding-left: 4px; 
     }
     
-    /* עיצוב עדין לפס הגלילה הפנימי של הפתק */
     .note-text::-webkit-scrollbar { width: 4px; }
     .note-text::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
@@ -124,7 +129,7 @@
   <div id="password-screen" style="display: none;">
     <div class="lock-box">
       <h2 id="lock-title">פנקס מאובטח</h2>
-      <input type="password" id="pass-input" placeholder="הקש סיסמה לתצוגה">
+      <input type="password" id="pass-input" placeholder="הקש סיסמה לתצוגה" onkeydown="if(event.key === 'Enter') verifyPassword()">
       <button class="btn btn-block btn-submit" onclick="verifyPassword()">כניסה</button>
       <div id="login-err" style="color:var(--urgent); font-size:0.9rem; display:none;">סיסמה שגויה, נסה שוב.</div>
     </div>
@@ -202,6 +207,7 @@
       callAPI('checkUserPassword', { password: '' }).then(res => {
         if (res === false) {
           document.getElementById('password-screen').style.display = 'flex';
+          document.getElementById('pass-input').focus(); // פוקוס אוטומטי לשדה הסיסמה
         } else {
           initApp();
         }
@@ -254,8 +260,6 @@
 
     function renderNotesList(notes) {
       const container = document.getElementById('notes-container');
-      
-      // סינון מקומי לפי קטגוריה
       const filtered = notes.filter(note => currentCategory === 'הכל' || note[3] === currentCategory);
 
       if (filtered.length === 0) {
@@ -267,8 +271,6 @@
       filtered.forEach(note => {
         const [id, text, date, cat, urgent, token] = note;
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
-        
-        // קיצור תצוגת התאריך בשביל פתק קטן
         const shortDate = date.split(',')[0] || date;
 
         html += `
@@ -280,7 +282,7 @@
                 <span>${cat}</span>
               </div>
               <div class="note-actions">
-                <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '❤️' : '🤍'}</button>
+                <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
                 <button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')" title="עריכה">✏️</button>
                 <button class="btn" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
                 <button class="btn" onclick="toggleArchiveServer('${id}')" title="${currentView === 'active' ? 'ארכיון' : 'שחזר'}">${currentView === 'active' ? '📦' : '📤'}</button>
