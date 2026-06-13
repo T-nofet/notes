@@ -22,7 +22,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Assistant', sans-serif; }
     body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 80px; }
 
-    .container { max-width: 600px; margin: 0 auto; }
+    .container { max-width: 800px; margin: 0 auto; }
     
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
@@ -36,22 +36,59 @@
     .cat-chip { padding: 6px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); }
     .cat-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
 
-    /* רשימת פתקים */
-    .notes-list { display: flex; flex-direction: column; gap: 12px; }
-    .note-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; gap: 8px; }
-    .note-card.is-urgent { border-right: 5px solid var(--urgent); background: var(--urgent-bg); }
+    /* תצוגת פתקים קטנים ברשת (Grid) */
+    .notes-list { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+      gap: 12px; 
+    }
     
-    .note-text { font-size: 1.05rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .note-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px solid var(--border); padding-top: 8px; }
-    .note-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 8px; }
-    .note-actions { display: flex; gap: 12px; color: var(--text-muted); }
-    .note-actions .btn { color: var(--text-muted); font-size: 1.1rem; }
+    .note-card { 
+      background: var(--card-bg); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius); 
+      padding: 12px; 
+      box-shadow: var(--shadow); 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between;
+      height: 180px; /* גובה קבוע לפתק קטן */
+      position: relative;
+    }
+    .note-card.is-urgent { border-right: 4px solid var(--urgent); background: var(--urgent-bg); }
+    
+    /* אזור טקסט קטן עם אפשרות גלילה פנימית */
+    .note-text { 
+      font-size: 0.95rem; 
+      line-height: 1.4; 
+      white-space: pre-wrap; 
+      word-break: break-word; 
+      overflow-y: auto; /* מאפשר גלילה אנכית בתוך הפתק */
+      flex-grow: 1;
+      margin-bottom: 6px;
+      padding-left: 4px; /* רווח קטן לפס הגלילה */
+    }
+    
+    /* עיצוב עדין לפס הגלילה הפנימי של הפתק */
+    .note-text::-webkit-scrollbar { width: 4px; }
+    .note-text::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .note-footer { 
+      display: flex; 
+      flex-direction: column;
+      gap: 6px;
+      border-top: 1px solid var(--border); 
+      padding-top: 6px; 
+    }
+    .note-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+    .note-actions { display: flex; justify-content: space-between; color: var(--text-muted); padding: 0 2px; }
+    .note-actions .btn { color: var(--text-muted); font-size: 1rem; }
     .note-actions .btn:hover { color: var(--text-main); }
 
     /* כפתור הוספה צף */
     .fab { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 1.8rem; z-index: 10; }
 
-    /* מודאלים ומסכים מובנים */
+    /* מודאלים */
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 100; }
     .modal { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 20px; display: flex; flex-direction: column; gap: 16px; animation: slideUp 0.3s ease-out; max-height: 85vh; }
     
@@ -74,11 +111,12 @@
     .lock-box { background: white; padding: 30px; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; gap: 16px; }
     .lock-box input { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1.1rem; text-align: center; outline: none; }
     
-    /* נוטיפיקציה קטנה */
     #toast { position: fixed; bottom: 90px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: none; z-index: 1000; }
 
-    /* מצב קריאה/עריכה ייעודי משיתוף */
     .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
+    .single-mode .notes-list { grid-template-columns: 1fr; }
+    .single-mode .note-card { height: auto; min-height: 180px; }
+    .single-mode .note-text { overflow-y: visible; }
   </style>
 </head>
 <body>
@@ -124,7 +162,7 @@
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
 
-    let currentView = 'active'; // active / archived / single
+    let currentView = 'active'; 
     let currentCategory = 'הכל';
     let allNotes = [];
     let categories = [];
@@ -206,7 +244,7 @@
 
     function loadNotes() {
       const action = currentView === 'active' ? 'getNotes' : 'getArchivedNotes';
-      document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתקים...</p>';
+      document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1;">טוען פתקים...</p>';
       
       callAPI(action).then(notes => {
         allNotes = notes || [];
@@ -216,24 +254,29 @@
 
     function renderNotesList(notes) {
       const container = document.getElementById('notes-container');
-      if (notes.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:20px;">אין פתקים להצגה</p>';
+      
+      // סינון מקומי לפי קטגוריה
+      const filtered = notes.filter(note => currentCategory === 'הכל' || note[3] === currentCategory);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:20px; grid-column: 1/-1;">אין פתקים להצגה</p>';
         return;
       }
 
       let html = '';
-      notes.forEach(note => {
-        const [id, text, date, cat, urgent, token, archived] = note;
-        if (currentCategory !== 'הכל' && cat !== currentCategory) return;
+      filtered.forEach(note => {
+        const [id, text, date, cat, urgent, token] = note;
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
         
+        // קיצור תצוגת התאריך בשביל פתק קטן
+        const shortDate = date.split(',')[0] || date;
+
         html += `
           <div class="note-card ${isUrgentClass}" id="note-${id}">
             <div class="note-text">${text}</div>
             <div class="note-footer">
               <div class="note-meta">
-                <span>${date}</span>
-                <span>•</span>
+                <span>${shortDate}</span>
                 <span>${cat}</span>
               </div>
               <div class="note-actions">
@@ -271,8 +314,8 @@
             <div class="note-card ${isUrgentClass}">
               <div class="note-text" id="single-text">${text}</div>
               <div class="note-footer">
-                <div class="note-meta"><span>${date}</span><span>•</span><span>${cat}</span></div>
-                <div class="note-actions">
+                <div class="note-meta"><span>${date}</span><span>${cat}</span></div>
+                <div class="note-actions" style="justify-content: flex-start;">
                   ${canEdit ? `<button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')">✏️ עריכת פתק משותף</button>` : '👁️ תצוגת קריאה בלבד'}
                 </div>
               </div>
