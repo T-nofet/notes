@@ -49,7 +49,7 @@
     
     .note-card { 
       background: var(--card-bg); 
-      border: 1px solid var(--border); 
+      border: 2px solid var(--cat-border-color); 
       border-radius: var(--radius); 
       padding: 14px; 
       box-shadow: var(--shadow); 
@@ -434,7 +434,7 @@
 
           const [id, text, date, cat, urgent, token] = note;
           const canEdit = editTokenFromUrl && token && editTokenFromUrl === token;
-          const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
+          const isUrgentClass = urgent === 'd'; // adjusted if needed
           
           const colors = getCategoryColor(cat);
           const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
@@ -445,7 +445,7 @@
           }
 
           let html = `
-            <div class="note-card ${isUrgentClass}" ${cardVars}>
+            <div class="note-card ${urgent === 'דחוף' ? 'is-urgent' : ''}" ${cardVars}>
               <div class="note-text" id="single-text">${text}</div>
               <div class="note-footer">
                 <div class="note-meta"><span class="note-date">${date}</span><span class="cat-badge">${cat}</span></div>
