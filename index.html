@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>פנקס פתקים</title>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-main: #212529;
+      --text-muted: #6c757d;
+      --primary: #4a6fa5;
+      --urgent: #e63946;
+      --urgent-bg: #ffe3e3;
+      --border: #e9ecef;
+      --shadow: 0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Assistant', sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 80px; }
+
+    .container { max-width: 600px; margin: 0 auto; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+    
+    .btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .btn-archive-toggle { font-size: 0.9rem; color: var(--primary); font-weight: 600; padding: 6px 12px; border-radius: 20px; background: #eef2f7; }
+
+    /* קטגוריות */
+    .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
+    .categories-bar::-webkit-scrollbar { display: none; }
+    .cat-chip { padding: 6px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); }
+    .cat-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+
+    /* רשימת פתקים */
+    .notes-list { display: flex; flex-direction: column; gap: 12px; }
+    .note-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; gap: 8px; }
+    .note-card.is-urgent { border-right: 5px solid var(--urgent); background: var(--urgent-bg); }
+    
+    .note-text { font-size: 1.05rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .note-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px solid var(--border); padding-top: 8px; }
+    .note-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 8px; }
+    .note-actions { display: flex; gap: 12px; color: var(--text-muted); }
+    .note-actions .btn { color: var(--text-muted); font-size: 1.1rem; }
+    .note-actions .btn:hover { color: var(--text-main); }
+
+    /* כפתור הוספה צף */
+    .fab { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; background: var(--primary); color: white; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 1.8rem; z-index: 10; }
+
+    /* מודאלים ומסכים מובנים */
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 100; }
+    .modal { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 20px; display: flex; flex-direction: column; gap: 16px; animation: slideUp 0.3s ease-out; max-height: 85vh; }
+    
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    textarea { width: 100%; height: 120px; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-size: 1rem; resize: none; outline: none; }
+    textarea:focus { border-color: var(--primary); }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+    select { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; outline: none; background: white; }
+
+    .modal-buttons { display: flex; gap: 10px; margin-top: 8px; }
+    .btn-block { flex: 1; padding: 12px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; text-align: center; }
+    .btn-submit { background: var(--primary); color: white; }
+    .btn-cancel { background: #f1f3f5; color: var(--text-main); }
+
+    /* מסך סיסמה */
+    #password-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+    .lock-box { background: white; padding: 30px; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; gap: 16px; }
+    .lock-box input { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1.1rem; text-align: center; outline: none; }
+    
+    /* נוטיפיקציה קטנה */
+    #toast { position: fixed; bottom: 90px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: none; z-index: 1000; }
+
+    /* מצב קריאה/עריכה ייעודי משיתוף */
+    .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
+
+    /* עיצוב אייקונים בסיסי בטקסט */
+    .icon-btn { font-style: normal; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="password-screen" style="display: none;">
+    <div class="lock-box">
+      <h2 id="lock-title">פנקס מאובטח</h2>
+      <input type="password" id="pass-input" placeholder="הקש סיסמה לתצוגה">
+      <button class="btn btn-block btn-submit" onclick="verifyPassword()">כניסה</button>
+      <div id="login-err" style="color:var(--urgent); font-size:0.9rem; display:none;">סיסמה שגויה, נסה שוב.</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1 id="app-title">פנקס פתקים</h1>
+      <button class="btn btn-archive-toggle" id="archive-view-btn" onclick="toggleArchiveView()">ארכיון</button>
+    </header>
+
+    <div class="categories-bar" id="categories-container"></div>
+    <div class="notes-list" id="notes-container"></div>
+  </div>
+
+  <button class="btn fab" onclick="openAddModal()">+</button>
+
+  <div class="overlay" id="note-modal" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3 id="modal-title">פתק חדש</h3>
+      <textarea id="note-text-input" placeholder="כתוב משהו..."></textarea>
+      <div class="form-group" id="cat-select-group">
+        <label>קטגוריה</label>
+        <select id="note-cat-select"></select>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-block btn-cancel" onclick="closeModal()">ביטול</button>
+        <button class="btn btn-block btn-submit" id="save-modal-btn" onclick="saveNote()">שמירה</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // כתובת ה-API של גוגל סקריפט (החלף בקישור שלך שקיבלת)
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
+
+    let currentView = 'active'; // active / archived / single
+    let currentCategory = 'הכל';
+    let allNotes = [];
+    let categories = [];
+    let editingNoteId = null;
+    let editTokenFromUrl = null;
+
+    // ניתוח פרמטרים בכתובת (לשיתוף)
+    const urlParams = new URLSearchParams(window.location.search);
+    const noteIdParam = urlParams.get('noteId');
+    editTokenFromUrl = urlParams.get('token');
+
+    window.onload = function() {
+      if (noteIdParam) {
+        document.body.classList.add('single-mode');
+        currentView = 'single';
+        loadSingleNoteView();
+      } else {
+        checkSecurity();
+      }
+    };
+
+    // תקשורת מול ה-API של גוגל סקריפט ב-POST
+    async function callAPI(action, data = {}) {
+      data.action = action;
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+        return await response.json();
+      } catch (err) {
+        showToast("שגיאת תקשורת בשרת");
+        console.error(err);
+        return null;
+      }
+    }
+
+    function checkSecurity() {
+      // בדיקה אם מוגדרת סיסמה במערכת
+      callAPI('checkUserPassword', { password: '' }).then(res => {
+        if (res === false) {
+          // יש סיסמה (כי סיסמה ריקה לא תואמת)
+          document.getElementById('password-screen').style.display = 'flex';
+        } else {
+          // אין סיסמה מוגדרת, כניסה ישרה
+          initApp();
+        }
+      });
+    }
+
+    function verifyPassword() {
+      const pass = document.getElementById('pass-input').value;
+      callAPI('checkUserPassword', { password: pass }).then(isValid => {
+        if (isValid) {
+          document.getElementById('password-screen').style.display = 'none';
+          initApp();
+        } else {
+          document.getElementById('login-err').style.display = 'block';
+        }
+      });
+    }
+
+    function initApp() {
+      callAPI('getAppTitle').then(title => { if(title) document.getElementById('app-title').innerText = title; });
+      loadCategories();
+      loadNotes();
+    }
+
+    function loadCategories() {
+      callAPI('getCategories').then(cats => {
+        if (!cats) return;
+        categories = cats;
+        const container = document.getElementById('categories-container');
+        let html = `<div class="cat-chip ${currentCategory === 'הכל' ? 'active' : ''}" onclick="filterCategory('הכל')">הכל</div>`;
+        cats.forEach(c => {
+          html += `<div class="cat-chip ${currentCategory === c ? 'active' : ''}" onclick="filterCategory('${c}')">${c}</div>`;
+        });
+        container.innerHTML = html;
+
+        // עדכון הסלקטור במודאל
+        const select = document.getElementById('note-cat-select');
+        select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      });
+    }
+
+    function loadNotes() {
+      const action = currentView === 'active' ? 'getNotes' : 'getArchivedNotes';
+      document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתקים...</p>';
+      
+      callAPI(action).then(notes => {
+        allNotes = notes || [];
+        renderNotesList(allNotes);
+      });
+    }
+
+    function renderNotesList(notes) {
+      const container = document.getElementById('notes-container');
+      if (notes.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:20px;">אין פתקים להצגה</p>';
+        return;
+      }
+
+      let html = '';
+      notes.forEach(note => {
+        const [id, text, date, cat, urgent, token, archived] = note;
+        
+        // סינון קטגוריה באפליקציה
+        if (currentCategory !== 'הכל' && cat !== currentCategory) return;
+
+        const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
+        
+        html += `
+          <div class="note-card ${isUrgentClass}" id="note-${id}">
+            <div class="note-text">${text}</div>
+            <div class="note-footer">
+              <div class="note-meta">
+                <span>${date}</span>
+                <span>•</span>
+                <span>${cat}</span>
+              </div>
+              <div class="note-actions">
+                <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '❤️' : '🤍'}</button>
+                <button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')" title="עריכה">✏️</button>
+                <button class="btn" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
+                <button class="btn" onclick="toggleArchiveServer('${id}')" title="${currentView === 'active' ? 'ארכיון' : 'שחזר'}">${currentView === 'active' ? '📦' : '📤'}</button>
+                <button class="btn" onclick="deleteNoteServer('${id}')" title="מחיקה">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // תצוגת פתק בודד משיתוף קריאה/עריכה
+    function loadSingleNoteView() {
+      document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתק משותף...</p>';
+      
+      // מביא את כל הפתקים (גם פעילים וגם ארכיון) כדי למצוא את הספציפי ללא הגבלת אבטחה
+      callAPI('getNotes').then(active => {
+        callAPI('getArchivedNotes').then(archived => {
+          const combined = [...(active || []), ...(archived || [])];
+          const note = combined.find(n => n[0].toString
