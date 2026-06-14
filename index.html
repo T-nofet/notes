@@ -27,11 +27,17 @@
 
     .container { max-width: 1000px; margin: 0 auto; }
     
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
     
     .btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
     .btn-archive-toggle { font-size: 0.9rem; color: var(--primary); font-weight: 600; padding: 6px 12px; border-radius: 20px; background: #eef2f7; }
+
+    /* בר חיפוש */
+    .search-wrapper { margin-bottom: 16px; position: relative; }
+    .search-input { width: 100%; padding: 10px 40px 10px 14px; font-size: 0.95rem; border: 1px solid var(--border); border-radius: 20px; background: var(--card-bg); outline: none; box-shadow: var(--shadow); transition: all 0.2s; }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1); }
+    .search-icon { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 1rem; }
 
     /* בר קטגוריות */
     .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
@@ -189,7 +195,7 @@
     
     #toast { position: fixed; bottom: 90px; right: 50%; transform: translateX(50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: none; z-index: 1000; }
 
-    .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar { display: none !important; }
+    .single-mode header .btn-archive-toggle, .single-mode .fab, .single-mode .categories-bar, .single-mode .search-wrapper { display: none !important; }
     .single-mode .notes-list { grid-template-columns: 1fr; }
     .single-mode .note-card { height: auto; min-height: 200px; }
     .single-mode .note-card:hover { transform: none; box-shadow: var(--shadow); border-color: var(--border); }
@@ -212,6 +218,11 @@
       <h1 id="app-title">פנקס פתקים</h1>
       <button class="btn btn-archive-toggle" id="archive-view-btn" onclick="toggleArchiveView()">ארכיון</button>
     </header>
+
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" class="search-input" placeholder="חפש בתוך הפתקים שלך..." oninput="handleSearch()">
+    </div>
 
     <div class="categories-bar" id="categories-container"></div>
     <div class="notes-list" id="notes-container"></div>
@@ -343,21 +354,18 @@
         
         container.innerHTML = '';
         
-        // 1. יצירת צ'יפ "הכל"
         const allChip = document.createElement('div');
         allChip.className = `cat-chip ${currentCategory === 'הכל' ? 'active' : ''}`;
         allChip.innerText = 'הכל';
         allChip.onclick = () => filterCategory('הכל');
         container.appendChild(allChip);
 
-        // 2. יצירת צ'יפ וירטואלי מיוחד של "דחוף"
         const urgentChip = document.createElement('div');
         urgentChip.className = `cat-chip urgent-chip ${currentCategory === '⭐ דחוף' ? 'active' : ''}`;
         urgentChip.innerText = '⭐ דחוף';
         urgentChip.onclick = () => filterCategory('⭐ דחוף');
         container.appendChild(urgentChip);
 
-        // 3. יצירת שאר הצ'יפים מהשרת
         cats.forEach(c => {
           const colors = getCategoryColor(c);
           const chip = document.createElement('div');
@@ -423,10 +431,15 @@
       });
     }
 
+    function handleSearch() {
+      renderNotesList(allNotes);
+    }
+
     function renderNotesList(notes) {
       const container = document.getElementById('notes-container');
+      const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
       
-      // סינון מתוחכם: אם נבחר "⭐ דחוף" מציג רק פתקים עם דחוף, אחרת מסנן לפי קטגוריה רגילה
+      // 1. סינון ראשוני לפי קטגוריה נבחרת
       let filtered = [];
       if (currentCategory === 'הכל') {
         filtered = notes;
@@ -434,6 +447,14 @@
         filtered = notes.filter(note => note[4] === 'דחוף');
       } else {
         filtered = notes.filter(note => note[3] === currentCategory);
+      }
+
+      // 2. סינון משני לפי מילת החיפוש בטקסט של הפתק
+      if (searchQuery !== "") {
+        filtered = filtered.filter(note => {
+          const text = note[1] ? note[1].toLowerCase() : "";
+          return text.includes(searchQuery);
+        });
       }
 
       if (filtered.length === 0) {
@@ -527,6 +548,9 @@
       document.getElementById('archive-view-btn').innerText = currentView === 'active' ? 'ארכיון' : 'פתקים פעילים';
       document.getElementById('archive-view-btn').style.background = currentView === 'active' ? '#eef2f7' : '#4a6fa5';
       document.getElementById('archive-view-btn').style.color = currentView === 'active' ? 'var(--primary)' : 'white';
+      
+      // איפוס החיפוש במעבר בין הארכיון לפתקים הפעילים למניעת בלבול
+      document.getElementById('search-input').value = "";
       loadNotes();
     }
 
@@ -657,7 +681,6 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
-    // פונקציות עזר
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
