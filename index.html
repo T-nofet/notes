@@ -39,6 +39,8 @@
     .cat-chip { padding: 6px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.9rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); transition: all 0.2s; user-select: none; position: relative; }
     .cat-chip:hover { background: #f1f3f5; color: var(--text-main); }
     .cat-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+    .cat-chip.urgent-chip { border-color: #fcd34d; background: #fffbeb; color: #b45309; }
+    .cat-chip.urgent-chip.active { background: var(--urgent); color: white; border-color: var(--urgent); }
 
     /* רשת הפתקים */
     .notes-list { 
@@ -320,7 +322,7 @@
     }
 
     function getCategoryColor(catName) {
-      if (catName === 'הכל') return { bg: '#ffffff', border: '#cbd5e1', text: '#1e293b' };
+      if (catName === 'הכל' || catName === '⭐ דחוף') return { bg: '#ffffff', border: '#cbd5e1', text: '#1e293b' };
       let hash = 0;
       for (let i = 0; i < catName.length; i++) {
         hash = catName.charCodeAt(i) + ((hash << 5) - hash);
@@ -348,7 +350,14 @@
         allChip.onclick = () => filterCategory('הכל');
         container.appendChild(allChip);
 
-        // 2. יצירת שאר הצ'יפים מהשרת
+        // 2. יצירת צ'יפ וירטואלי מיוחד של "דחוף"
+        const urgentChip = document.createElement('div');
+        urgentChip.className = `cat-chip urgent-chip ${currentCategory === '⭐ דחוף' ? 'active' : ''}`;
+        urgentChip.innerText = '⭐ דחוף';
+        urgentChip.onclick = () => filterCategory('⭐ דחוף');
+        container.appendChild(urgentChip);
+
+        // 3. יצירת שאר הצ'יפים מהשרת
         cats.forEach(c => {
           const colors = getCategoryColor(c);
           const chip = document.createElement('div');
@@ -363,7 +372,6 @@
           
           chip.onclick = () => filterCategory(c);
           
-          // מנגנון מחיקה בלחיצה ארוכה או קליק ימני (חסום עבור "כללי")
           if (c !== 'כללי') {
             chip.oncontextmenu = (e) => { e.preventDefault(); deleteCategoryPrompt(c); };
             
@@ -417,7 +425,16 @@
 
     function renderNotesList(notes) {
       const container = document.getElementById('notes-container');
-      const filtered = notes.filter(note => currentCategory === 'הכל' || note[3] === currentCategory);
+      
+      // סינון מתוחכם: אם נבחר "⭐ דחוף" מציג רק פתקים עם דחוף, אחרת מסנן לפי קטגוריה רגילה
+      let filtered = [];
+      if (currentCategory === 'הכל') {
+        filtered = notes;
+      } else if (currentCategory === '⭐ דחוף') {
+        filtered = notes.filter(note => note[4] === 'דחוף');
+      } else {
+        filtered = notes.filter(note => note[3] === currentCategory);
+      }
 
       if (filtered.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:20px; grid-column: 1/-1;">אין פתקים להצגה</p>';
@@ -577,7 +594,7 @@
         const cat = document.getElementById('note-cat-select').value;
         callAPI('addNoteToSheet', { text: text, category: cat }).then(success => {
           if (success) {
-            showToast("הפתק התווסף");
+            showToast("הפתק התווספה");
             closeModal();
             loadNotes();
           }
@@ -640,6 +657,7 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
+    // פונקציות עזר
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
