@@ -49,8 +49,7 @@
     
     .note-card { 
       background: var(--card-bg); 
-      border: 1px solid var(--border); 
-      border-bottom: 4px solid var(--cat-border-color);
+      border: 2px solid var(--cat-border-color); 
       border-radius: var(--radius); 
       padding: 14px; 
       box-shadow: var(--shadow); 
@@ -65,14 +64,20 @@
     .note-card:hover {
       transform: translateY(-4px) scale(1.03);
       box-shadow: var(--shadow-hover);
-      border-color: var(--border);
+      border-color: var(--cat-border-color, #cbd5e1);
     }
     
     .note-card.is-urgent { 
+      border-color: var(--urgent);
       box-shadow: 0 0 12px var(--urgent-glow), var(--shadow);
     }
     .note-card.is-urgent:hover {
+      border-color: var(--urgent);
       box-shadow: 0 0 16px var(--urgent-glow), var(--shadow-hover);
+    }
+    
+    .note-card.is-shared {
+      border-bottom: 3px solid var(--shared-color);
     }
     
     .note-text { 
@@ -108,10 +113,7 @@
       align-items: center;
     }
     .note-date { font-weight: 500; }
-    
-    /* עיצוב ואייקון כפתור שיתוף */
-    .share-btn { color: var(--text-muted); font-size: 1.1rem; }
-    .share-btn.is-shared-active { color: var(--shared-color) !important; font-weight: 700; }
+    .shared-badge { color: var(--shared-color); font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; gap: 2px; }
     
     /* תגית קטגוריה דינמית */
     .cat-badge {
@@ -225,7 +227,10 @@
       <textarea id="note-text-input" placeholder="כתוב משהו..."></textarea>
       <div class="form-group" id="cat-select-group">
         <label>קטגוריה</label>
-        <select id="note-cat-select"></select>
+        <div style="display: flex; gap: 8px;">
+          <select id="note-cat-select" style="flex: 1;"></select>
+          <button class="btn" onclick="addNewCategory()" title="הוסף קטגוריה חדשה" style="background: #eef2f7; padding: 0 16px; border-radius: var(--radius); color: var(--primary); font-weight: 700;">➕</button>
+        </div>
       </div>
       <div class="modal-buttons">
         <button class="btn btn-block btn-cancel" onclick="closeModal()">ביטול</button>
@@ -237,7 +242,7 @@
   <div id="toast"></div>
 
   <script>
-    // עדכן כאן את כתובת ה-Web App שלך מה-Apps Script:
+    // כתובת ה-Web App המעודכנת שלך משובצת כאן:
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
 
     let currentView = 'active'; 
@@ -249,10 +254,10 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteIdParam = urlParams.get('noteId');
-    editTokenFromUrl = urlParams.get('token');
+    const editTokenFromUrl = urlParams.get('token');
 
     window.onload = function() {
-      if (noteIdParam) {
+      if (noteParam) {
         document.body.classList.add('single-mode');
         currentView = 'single';
         loadSingleNoteView();
@@ -342,10 +347,6 @@
           const chipStyle = currentCategory === c ? '' : `style="background: ${colors.bg}; color: ${colors.text}; border-color: ${colors.border};"`;
           html += `<div class="cat-chip ${activeClass}" ${chipStyle} onclick="filterCategory('${c}')">${c}</div>`;
         });
-
-        // כפתור הוספת קטגוריה חדשה ישירות בסרגל העליון
-        html += `<div class="cat-chip" onclick="addNewCategory()" style="background: #eef2f7; color: var(--primary); font-weight: 700; border: 1px dashed var(--primary);">➕ הוסף קטגוריה</div>`;
-        
         container.innerHTML = html;
 
         const select = document.getElementById('note-cat-select');
@@ -389,27 +390,25 @@
         const [id, text, date, cat, urgent, token] = note;
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
         const isShared = token && token.trim() !== ''; 
+        const isSharedClass = isShared ? 'is-shared' : '';
         
         const colors = getCategoryColor(cat);
         const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
         html += `
-          <div class="note-card ${isUrgentClass}" id="note-${id}" ${cardVars}>
+          <div class="note-card ${isUrgentClass} ${isSharedClass}" id="note-${id}" ${cardVars}>
             <div class="note-text">${text}</div>
             <div class="note-footer">
               <div class="note-meta">
                 <span class="note-date">${date}</span>
-                <span class="cat-badge">${cat}</span>
+                ${isShared ? `<span class="shared-badge" title="פתק משותף לעריכה">👥 <span class="cat-badge">${cat}</span></span>` : `<span class="cat-badge">${cat}</span>`}
               </div>
               <div class="note-actions">
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
                 <button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')" title="עריכה">✏️</button>
+                <button class="btn" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
                 
-                <button class="btn share-btn ${isShared ? 'is-shared-active' : ''}" onclick="shareNote('${id}')" title="${isShared ? 'ניהול שיתוף פתק' : 'שיתוף פתק'}">
-                  ${isShared ? '🔓' : '🔒'}
-                </button>
-                
-                ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🚫</button>` : ''}
+                ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🔓</button>` : ''}
                 
                 <button class="btn" onclick="toggleArchiveServer('${id}')" title="${currentView === 'active' ? 'ארכיון' : 'שחזר'}">${currentView === 'active' ? '📦' : '📤'}</button>
                 <button class="btn" onclick="deleteNoteServer('${id}')" title="מחיקה">🗑️</button>
@@ -427,7 +426,7 @@
       callAPI('getNotes').then(active => {
         callAPI('getArchivedNotes').then(archived => {
           const combined = [...(active || []), ...(archived || [])];
-          const note = combined.find(n => n[0].toString() === noteIdParam.toString());
+          const note = combined.find(n => n[0].toString() === noteParam.toString());
           
           if (!note) {
             document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--urgent);">הפתק לא נמצא או שהשיתוף בוטל</p>';
@@ -514,13 +513,12 @@
     }
 
     function closeModal() {
-      document.getElementById('note-modal').style.display = 'none'; 
+      document.getElementById('note-modal').style.display = 'none';
     }
 
     function saveNote() {
       const text = document.getElementById('note-text-input').value.trim();
       if (!text) return;
-
       document.getElementById('save-modal-btn').disabled = true;
       document.getElementById('save-modal-btn').innerText = 'שומר...';
 
