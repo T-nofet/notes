@@ -317,6 +317,7 @@
       .then(isValidWithoutPassword => {
         if (isValidWithoutPassword) {
           // אין סיסמה בסקריפט, פתח ישירות
+          userSessionPassword = ''; // מנקה את הסיסמה לשימוש גלובלי ריק
           document.getElementById('main-container').style.display = 'block';
           document.getElementById('fab-btn').style.display = 'flex';
           initApp();
@@ -325,6 +326,11 @@
           document.getElementById('password-screen').style.display = 'flex';
           document.getElementById('pass-input').focus();
         }
+      })
+      .catch(err => {
+        console.error("שגיאה בבדיקת אבטחה:", err);
+        // במקרה של כשל תקשורתי, נטען כמסך נעילה כברירת מחדל בטוחה
+        document.getElementById('password-screen').style.display = 'flex';
       });
     }
 
@@ -349,7 +355,12 @@
     }
 
     function initApp() {
-      callAPI('getAppTitle').then(title => { if(title) document.getElementById('app-title').innerText = title; });
+      callAPI('getAppTitle').then(title => { 
+        if(title) {
+          document.getElementById('app-title').innerText = title; 
+          document.title = title; // עדכון דינמי של כותרת הלשונית בדפדפן
+        }
+      });
       loadCategories();
       loadNotes();
     }
