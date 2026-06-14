@@ -108,7 +108,10 @@
       align-items: center;
     }
     .note-date { font-weight: 500; }
-    .shared-icon { color: var(--shared-color) !important; font-weight: 700; }
+    
+    /* עיצוב ואייקון כפתור שיתוף */
+    .share-btn { color: var(--text-muted); font-size: 1.1rem; }
+    .share-btn.is-shared-active { color: var(--shared-color) !important; font-weight: 700; }
     
     /* תגית קטגוריה דינמית */
     .cat-badge {
@@ -251,7 +254,7 @@
     editTokenFromUrl = urlParams.get('token');
 
     window.onload = function() {
-      if (noteIdParam) {
+      if (noteParam) {
         document.body.classList.add('single-mode');
         currentView = 'single';
         loadSingleNoteView();
@@ -399,9 +402,12 @@
               <div class="note-actions">
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
                 <button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')" title="עריכה">✏️</button>
-                <button class="btn ${isShared ? 'shared-icon' : ''}" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
                 
-                ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🔓</button>` : ''}
+                <button class="btn share-btn ${isShared ? 'is-shared-active' : ''}" onclick="shareNote('${id}')" title="${isShared ? 'ניהול שיתוף פתק' : 'שיתוף פתק'}">
+                  ${isShared ? '🔓' : '🔒'}
+                </button>
+                
+                ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🚫</button>` : ''}
                 
                 <button class="btn" onclick="toggleArchiveServer('${id}')" title="${currentView === 'active' ? 'ארכיון' : 'שחזר'}">${currentView === 'active' ? '📦' : '📤'}</button>
                 <button class="btn" onclick="deleteNoteServer('${id}')" title="מחיקה">🗑️</button>
