@@ -49,7 +49,8 @@
     
     .note-card { 
       background: var(--card-bg); 
-      border: 2px solid var(--cat-border-color); 
+      border: 1px solid var(--border); 
+      border-bottom: 4px solid var(--cat-border-color);
       border-radius: var(--radius); 
       padding: 14px; 
       box-shadow: var(--shadow); 
@@ -64,20 +65,14 @@
     .note-card:hover {
       transform: translateY(-4px) scale(1.03);
       box-shadow: var(--shadow-hover);
-      border-color: var(--cat-border-color, #cbd5e1);
+      border-color: var(--border);
     }
     
     .note-card.is-urgent { 
-      border-color: var(--urgent);
       box-shadow: 0 0 12px var(--urgent-glow), var(--shadow);
     }
     .note-card.is-urgent:hover {
-      border-color: var(--urgent);
       box-shadow: 0 0 16px var(--urgent-glow), var(--shadow-hover);
-    }
-    
-    .note-card.is-shared {
-      border-bottom: 3px solid var(--shared-color);
     }
     
     .note-text { 
@@ -113,7 +108,7 @@
       align-items: center;
     }
     .note-date { font-weight: 500; }
-    .shared-badge { color: var(--shared-color); font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; gap: 2px; }
+    .shared-icon { color: var(--shared-color) !important; font-weight: 700; }
     
     /* תגית קטגוריה דינמית */
     .cat-badge {
@@ -389,23 +384,22 @@
         const [id, text, date, cat, urgent, token] = note;
         const isUrgentClass = urgent === 'דחוף' ? 'is-urgent' : '';
         const isShared = token && token.trim() !== ''; 
-        const isSharedClass = isShared ? 'is-shared' : '';
         
         const colors = getCategoryColor(cat);
         const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
         html += `
-          <div class="note-card ${isUrgentClass} ${isSharedClass}" id="note-${id}" ${cardVars}>
+          <div class="note-card ${isUrgentClass}" id="note-${id}" ${cardVars}>
             <div class="note-text">${text}</div>
             <div class="note-footer">
               <div class="note-meta">
                 <span class="note-date">${date}</span>
-                ${isShared ? `<span class="shared-badge" title="פתק משותף לעריכה">👥 <span class="cat-badge">${cat}</span></span>` : `<span class="cat-badge">${cat}</span>`}
+                <span class="cat-badge">${cat}</span>
               </div>
               <div class="note-actions">
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
                 <button class="btn" onclick="openEditModal('${id}', \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`, '${cat}')" title="עריכה">✏️</button>
-                <button class="btn" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
+                <button class="btn ${isShared ? 'shared-icon' : ''}" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
                 
                 ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🔓</button>` : ''}
                 
@@ -434,7 +428,6 @@
 
           const [id, text, date, cat, urgent, token] = note;
           const canEdit = editTokenFromUrl && token && editTokenFromUrl === token;
-          const isUrgentClass = urgent === 'd'; // adjusted if needed
           
           const colors = getCategoryColor(cat);
           const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
