@@ -225,10 +225,7 @@
       <textarea id="note-text-input" placeholder="כתוב משהו..."></textarea>
       <div class="form-group" id="cat-select-group">
         <label>קטגוריה</label>
-        <div style="display: flex; gap: 8px;">
-          <select id="note-cat-select" style="flex: 1;"></select>
-          <button class="btn" onclick="addNewCategory()" title="הוסף קטגוריה חדשה" style="background: #eef2f7; padding: 0 16px; border-radius: var(--radius); color: var(--primary); font-weight: 700;">➕</button>
-        </div>
+        <select id="note-cat-select"></select>
       </div>
       <div class="modal-buttons">
         <button class="btn btn-block btn-cancel" onclick="closeModal()">ביטול</button>
@@ -240,6 +237,7 @@
   <div id="toast"></div>
 
   <script>
+    // עדכן כאן את כתובת ה-Web App שלך מה-Apps Script:
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
 
     let currentView = 'active'; 
@@ -344,6 +342,10 @@
           const chipStyle = currentCategory === c ? '' : `style="background: ${colors.bg}; color: ${colors.text}; border-color: ${colors.border};"`;
           html += `<div class="cat-chip ${activeClass}" ${chipStyle} onclick="filterCategory('${c}')">${c}</div>`;
         });
+
+        // כפתור הוספת קטגוריה חדשה ישירות בסרגל העליון
+        html += `<div class="cat-chip" onclick="addNewCategory()" style="background: #eef2f7; color: var(--primary); font-weight: 700; border: 1px dashed var(--primary);">➕ הוסף קטגוריה</div>`;
+        
         container.innerHTML = html;
 
         const select = document.getElementById('note-cat-select');
