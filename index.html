@@ -213,7 +213,7 @@
     </div>
   </div>
 
-  <div class="container">
+  <div class="container" id="main-container" style="display: none;">
     <header>
       <h1 id="app-title">פנקס פתקים</h1>
       <button class="btn btn-archive-toggle" id="archive-view-btn" onclick="toggleArchiveView()">ארכיון</button>
@@ -228,7 +228,7 @@
     <div class="notes-list" id="notes-container"></div>
   </div>
 
-  <button class="btn fab" onclick="openAddModal()">+</button>
+  <button class="btn fab" id="fab-btn" style="display: none;" onclick="openAddModal()">+</button>
 
   <div class="overlay" id="note-modal" onclick="if(event.target===this) closeModal()">
     <div class="modal" id="modal-box">
@@ -262,6 +262,7 @@
     let categories = [];
     let editingNoteId = null;
     let editTokenFromUrl = null;
+    let userSessionPassword = ""; // שומר את הסיסמה לשימוש בשאר הבקשות
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteIdParam = urlParams.get('noteId');
@@ -271,6 +272,7 @@
       if (noteIdParam) {
         document.body.classList.add('single-mode');
         currentView = 'single';
+        document.getElementById('main-container').style.display = 'block';
         loadSingleNoteView();
       } else {
         checkSecurity();
@@ -288,8 +290,10 @@
       });
     };
 
+    // הזרקת הסיסמה באופן אוטומטי לכל קריאות ה-API
     async function callAPI(action, data = {}) {
       data.action = action;
+      data.password = userSessionPassword; 
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
@@ -304,21 +308,39 @@
     }
 
     function checkSecurity() {
-      callAPI('checkUserPassword', { password: '' }).then(res => {
-        if (res === false) {
+      // בודק אם השרת מאשר גישה בלי סיסמה (במידה ובוטלה)
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'checkUserPassword', password: '' })
+      })
+      .then(res => res.json())
+      .then(isValidWithoutPassword => {
+        if (isValidWithoutPassword) {
+          // אין סיסמה בסקריפט, פתח ישירות
+          document.getElementById('main-container').style.display = 'block';
+          document.getElementById('fab-btn').style.display = 'flex';
+          initApp();
+        } else {
+          // יש סיסמה, הצג את מסך הנעילה ושמור על הממשק מוסתר
           document.getElementById('password-screen').style.display = 'flex';
           document.getElementById('pass-input').focus();
-        } else {
-          initApp();
         }
       });
     }
 
     function verifyPassword() {
       const pass = document.getElementById('pass-input').value;
-      callAPI('checkUserPassword', { password: pass }).then(isValid => {
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'checkUserPassword', password: pass })
+      })
+      .then(res => res.json())
+      .then(isValid => {
         if (isValid) {
+          userSessionPassword = pass; // שמירת הסיסמה לסשן הנוכחי
           document.getElementById('password-screen').style.display = 'none';
+          document.getElementById('main-container').style.display = 'block';
+          document.getElementById('fab-btn').style.display = 'flex';
           initApp();
         } else {
           document.getElementById('login-err').style.display = 'block';
@@ -351,7 +373,6 @@
         if (!cats) return;
         categories = cats;
         const container = document.getElementById('categories-container');
-        
         container.innerHTML = '';
         
         const allChip = document.createElement('div');
@@ -382,12 +403,10 @@
           
           if (c !== 'כללי') {
             chip.oncontextmenu = (e) => { e.preventDefault(); deleteCategoryPrompt(c); };
-            
             let pressTimer;
             chip.addEventListener('touchstart', () => { pressTimer = setTimeout(() => deleteCategoryPrompt(c), 800); });
             chip.addEventListener('touchend', () => { clearTimeout(pressTimer); });
           }
-          
           container.appendChild(chip);
         });
 
@@ -424,7 +443,6 @@
     function loadNotes() {
       const action = currentView === 'active' ? 'getNotes' : 'getArchivedNotes';
       document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1;">טוען פתקים...</p>';
-      
       callAPI(action).then(notes => {
         allNotes = notes || [];
         renderNotesList(allNotes);
@@ -439,7 +457,6 @@
       const container = document.getElementById('notes-container');
       const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
       
-      // 1. סינון ראשוני לפי קטגוריה נבחרת
       let filtered = [];
       if (currentCategory === 'הכל') {
         filtered = notes;
@@ -449,7 +466,6 @@
         filtered = notes.filter(note => note[3] === currentCategory);
       }
 
-      // 2. סינון משני לפי מילת החיפוש בטקסט של הפתק
       if (searchQuery !== "") {
         filtered = filtered.filter(note => {
           const text = note[1] ? note[1].toLowerCase() : "";
@@ -484,9 +500,7 @@
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
                 <button class="btn" onclick="openEditModal('${id}', \`${escapeRowText(text)}\`, '${cat || 'כללי'}')" title="עריכה">✏️</button>
                 <button class="btn" onclick="shareNote('${id}')" title="שיתוף">🔗</button>
-                
                 ${isShared ? `<button class="btn btn-revoke" onclick="revokeShareServer('${id}')" title="בטל שיתוף וחסום גישה">🔓</button>` : ''}
-                
                 <button class="btn" onclick="toggleArchiveServer('${id}')" title="${currentView === 'active' ? 'ארכיון' : 'שחזר'}">${currentView === 'active' ? '📦' : '📤'}</button>
                 <button class="btn" onclick="deleteNoteServer('${id}')" title="מחיקה">🗑️</button>
               </div>
@@ -499,7 +513,6 @@
 
     function loadSingleNoteView() {
       document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתק משותף...</p>';
-      
       callAPI('getNotes').then(active => {
         callAPI('getArchivedNotes').then(archived => {
           const combined = [...(active || []), ...(archived || [])];
@@ -512,7 +525,6 @@
 
           const [id, text, date, cat, urgent, token] = note;
           const canEdit = editTokenFromUrl && token && editTokenFromUrl === token;
-          
           const colors = getCategoryColor(cat || 'כללי');
           const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
@@ -548,8 +560,6 @@
       document.getElementById('archive-view-btn').innerText = currentView === 'active' ? 'ארכיון' : 'פתקים פעילים';
       document.getElementById('archive-view-btn').style.background = currentView === 'active' ? '#eef2f7' : '#4a6fa5';
       document.getElementById('archive-view-btn').style.color = currentView === 'active' ? 'var(--primary)' : 'white';
-      
-      // איפוס החיפוש במעבר בין הארכיון לפתקים הפעילים למניעת בלבול
       document.getElementById('search-input').value = "";
       loadNotes();
     }
@@ -663,10 +673,8 @@
       const choice = confirm("לחץ 'אישור' ליצירת קישור לעריכה\nלחץ 'ביטול' ליצירת קישור לצפייה בלבד");
       callAPI('getShareLinkData', { id: id, edit: choice }).then(data => {
         if (!data) return;
-        
         let shareUrl = window.location.origin + window.location.pathname + "?noteId=" + data.id;
         if (data.token) shareUrl += "&token=" + data.token;
-        
         navigator.clipboard.writeText(shareUrl).then(() => {
           showToast("הקישור הועתק ללוח!");
           loadNotes(); 
@@ -681,6 +689,7 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
+    // סינון תווים מיוחדים ומניעת הזרקות קוד (XSS)
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
