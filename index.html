@@ -308,7 +308,32 @@
     }
 
     function checkSecurity() {
-      // בודק אם השרת מאשר גישה בלי סיסמה (במידה ובוטלה)
+      // אבטחה משופרת: בדיקה ראשונית מול ה-sessionStorage הזמני
+      const savedPassword = sessionStorage.getItem('userPassword');
+      if (savedPassword) {
+        fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'checkUserPassword', password: savedPassword })
+        })
+        .then(res => res.json())
+        .then(isValid => {
+          if (isValid) {
+            userSessionPassword = savedPassword;
+            document.getElementById('main-container').style.display = 'block';
+            document.getElementById('fab-btn').style.display = 'flex';
+            initApp();
+            return;
+          }
+          runSecurityFallback();
+        })
+        .catch(() => runSecurityFallback());
+      } else {
+        runSecurityFallback();
+      }
+    }
+
+    function runSecurityFallback() {
+      // בודק אם השרת מאשר גישה בלי סיסמה (במידה ובוטלה בסקריפט)
       fetch(GAS_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'checkUserPassword', password: '' })
@@ -316,20 +341,17 @@
       .then(res => res.json())
       .then(isValidWithoutPassword => {
         if (isValidWithoutPassword) {
-          // אין סיסמה בסקריפט, פתח ישירות
-          userSessionPassword = ''; // מנקה את הסיסמה לשימוש גלובלי ריק
+          userSessionPassword = ''; 
           document.getElementById('main-container').style.display = 'block';
           document.getElementById('fab-btn').style.display = 'flex';
           initApp();
         } else {
-          // יש סיסמה, הצג את מסך הנעילה ושמור על הממשק מוסתר
           document.getElementById('password-screen').style.display = 'flex';
           document.getElementById('pass-input').focus();
         }
       })
       .catch(err => {
         console.error("שגיאה בבדיקת אבטחה:", err);
-        // במקרה של כשל תקשורתי, נטען כמסך נעילה כברירת מחדל בטוחה
         document.getElementById('password-screen').style.display = 'flex';
       });
     }
@@ -343,7 +365,9 @@
       .then(res => res.json())
       .then(isValid => {
         if (isValid) {
-          userSessionPassword = pass; // שמירת הסיסמה לסשן הנוכחי
+          userSessionPassword = pass; 
+          // אבטחה משופרת: שמירת הסיסמה בלשונית הנוכחית בלבד
+          sessionStorage.setItem('userPassword', pass);
           document.getElementById('password-screen').style.display = 'none';
           document.getElementById('main-container').style.display = 'block';
           document.getElementById('fab-btn').style.display = 'flex';
@@ -358,7 +382,7 @@
       callAPI('getAppTitle').then(title => { 
         if(title) {
           document.getElementById('app-title').innerText = title; 
-          document.title = title; // עדכון דינמי של כותרת הלשונית בדפדפן
+          document.title = title; 
         }
       });
       loadCategories();
@@ -615,6 +639,12 @@
 
     function closeModal() {
       document.getElementById('note-modal').style.display = 'none';
+    }
+
+    // פונקציית התנתקות יזומה (במידה ותבחר להוסיף כפתור יציאה בהמשך)
+    function logout() {
+      sessionStorage.removeItem('userPassword');
+      window.location.reload();
     }
 
     function saveNote() {
