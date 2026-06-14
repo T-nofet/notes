@@ -242,7 +242,6 @@
   <div id="toast"></div>
 
   <script>
-    // כתובת ה-Web App המעודכנת שלך משובצת כאן:
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyPDoqiVrsEe10L4zdaxgGMZkGCTgo9du7ahskvsX5QhnPHrTaWLNbfYjCKzDXEiTHW/exec";
 
     let currentView = 'active'; 
@@ -254,10 +253,10 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteIdParam = urlParams.get('noteId');
-    const editTokenFromUrl = urlParams.get('token');
+    editTokenFromUrl = urlParams.get('token');
 
     window.onload = function() {
-      if (noteParam) {
+      if (noteIdParam) {
         document.body.classList.add('single-mode');
         currentView = 'single';
         loadSingleNoteView();
@@ -426,7 +425,7 @@
       callAPI('getNotes').then(active => {
         callAPI('getArchivedNotes').then(archived => {
           const combined = [...(active || []), ...(archived || [])];
-          const note = combined.find(n => n[0].toString() === noteParam.toString());
+          const note = combined.find(n => n[0].toString() === noteIdParam.toString());
           
           if (!note) {
             document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--urgent);">הפתק לא נמצא או שהשיתוף בוטל</p>';
