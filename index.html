@@ -529,7 +529,7 @@
             <div class="note-footer">
               <div class="note-meta">
                 <span class="note-date">${date}</span>
-                ${isShared ? `<span class="shared-badge" title="פתק משותף לעריכה">👥 <span class="cat-badge">${cat || 'כללי'}</span></span>` : `<span class="cat-badge">${cat || 'כללי'}</span>`}
+                ${isShared ? `<span class="shared-badge" title="פתק משותף">👥 <span class="cat-badge">${cat || 'כללי'}</span></span>` : `<span class="cat-badge">${cat || 'כללי'}</span>`}
               </div>
               <div class="note-actions">
                 <button class="btn" onclick="toggleUrgentServer('${id}')" title="דחוף">${urgent === 'דחוף' ? '⭐' : '☆'}</button>
@@ -548,8 +548,12 @@
 
     function loadSingleNoteView() {
       document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--text-muted);">טוען פתק משותף...</p>';
-      callAPI('getNotes').then(active => {
-        callAPI('getArchivedNotes').then(archived => {
+      
+      // שליחת בקשה שמציינת מצב שיתוף מורשה יחד עם הטוקן שהתקבל בכתובת
+      const sharePayload = { isShareMode: true, token: editTokenFromUrl || "" };
+      
+      callAPI('getNotes', sharePayload).then(active => {
+        callAPI('getArchivedNotes', sharePayload).then(archived => {
           const combined = [...(active || []), ...(archived || [])];
           const note = combined.find(n => n[0].toString() === noteIdParam.toString());
           
@@ -559,11 +563,15 @@
           }
 
           const [id, text, date, cat, urgent, token] = note;
-          const canEdit = editTokenFromUrl && token && editTokenFromUrl === token;
+          
+          // בדיקת מצב העריכה על פי הסימון שייצרנו ב-URL
+          const isEditLink = urlParams.get('mode') === 'edit';
+          const canEdit = isEditLink && editTokenFromUrl && token && editTokenFromUrl === token;
+          
           const colors = getCategoryColor(cat || 'כללי');
           const cardVars = `style="--cat-bg-color: ${colors.bg}; --cat-border-color: ${colors.border}; --cat-text-color: ${colors.text};"`;
 
-          if (editTokenFromUrl && (!token || editTokenFromUrl !== token)) {
+          if (isEditLink && (!token || editTokenFromUrl !== token)) {
             document.getElementById('notes-container').innerHTML = '<p style="text-align:center; color:var(--urgent); margin-top:20px;">הגישה לעריכת פתק זה בוטלה על ידי הבעלים</p>';
             return;
           }
@@ -641,7 +649,6 @@
       document.getElementById('note-modal').style.display = 'none';
     }
 
-    // פונקציית התנתקות יזומה (במידה ותבחר להוסיף כפתור יציאה בהמשך)
     function logout() {
       sessionStorage.removeItem('userPassword');
       window.location.reload();
@@ -715,7 +722,19 @@
       callAPI('getShareLinkData', { id: id, edit: choice }).then(data => {
         if (!data) return;
         let shareUrl = window.location.origin + window.location.pathname + "?noteId=" + data.id;
-        if (data.token) shareUrl += "&token=" + data.token;
+        
+        // הזרקה קבועה של הטוקן כדי לעבור את חומת האבטחה הגלובלית ב-GAS
+        if (data.token) {
+          shareUrl += "&token=" + data.token;
+        }
+        
+        // סימון מצב הגישה המבוקש בכתובת עצמה
+        if (data.allowEdit) {
+          shareUrl += "&mode=edit";
+        } else {
+          shareUrl += "&mode=view";
+        }
+        
         navigator.clipboard.writeText(shareUrl).then(() => {
           showToast("הקישור הועתק ללוח!");
           loadNotes(); 
@@ -730,7 +749,6 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
-    // סינון תווים מיוחדים ומניעת הזרקות קוד (XSS)
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
